@@ -1,4 +1,4 @@
-import { config } from './config';
+import { config } from './config.js';
 
 // Re-export config for user modification.
 export { config };
@@ -14,7 +14,7 @@ export function require(condition: (...args: any[]) => boolean, message: string)
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (this: any, ...args: any[]) {
       // Check is now inside the wrapper
       if (config.enabled && !condition.apply(this, args)) {
         config.violationHandler('Precondition', propertyKey, message);
@@ -69,7 +69,7 @@ export function invariant(condition: (instance: any) => boolean, message: string
 
       const originalMethod = descriptor.value;
 
-      const wrappedMethod = function (...args: any[]) {
+      const wrappedMethod = function (this: any, ...args: any[]) {
         // Check is now inside the wrapper
         if (config.enabled && !condition(this)) {
           // Pass a clean, predictable message
