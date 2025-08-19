@@ -40,7 +40,7 @@ describe('@invariant decorator', () => {
   it('should throw an error if the invariant is violated after a method call', () => {
     const account = new BankAccount(100);
     // This call will reduce the balance to -50, violating the invariant.
-    expect(() => account.buggyWithdraw(150)).toThrow('[Invariant failed] after calling buggyWithdraw: Account balance cannot be negative');
+    expect(() => account.buggyWithdraw(150)).toThrow('[Invariant failed] on buggyWithdraw: (after) Account balance cannot be negative');
   });
 
   it('should throw an error if the invariant is already violated before a method call', () => {
@@ -49,7 +49,7 @@ describe('@invariant decorator', () => {
     account.balance = -50;
 
     // Now, any method call should fail before it even starts.
-    expect(() => account.deposit(10)).toThrow('[Invariant failed] before calling deposit: Account balance cannot be negative');
+    expect(() => account.deposit(10)).toThrow('[Invariant failed] on deposit: (before) Account balance cannot be negative');
   });
 
   it('should not wrap the constructor', () => {
@@ -90,6 +90,6 @@ describe('@invariant decorator', () => {
     expect(() => service.update("hello")).toThrow('[Precondition failed] on update: Input must be a number');
 
     // Call that violates the invariant
-    expect(() => service.setToZero()).toThrow('[Invariant failed] after calling setToZero: Value must be positive');
+    expect(() => service.setToZero()).toThrow('[Invariant failed] on setToZero: (after) Value must be positive');
   });
 });

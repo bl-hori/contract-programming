@@ -1,3 +1,8 @@
+import { config } from './config';
+
+// Re-export config for user modification.
+export { config };
+
 /**
  * 事前条件をチェックするメソッドデコレータ。
  * 条件が満たされない場合、エラーをスローします。
@@ -10,8 +15,9 @@ export function require(condition: (...args: any[]) => boolean, message: string)
     const originalMethod = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
-      if (!condition.apply(this, args)) {
-        throw new Error(`[Precondition failed] on ${propertyKey}: ${message}`);
+      // Check is now inside the wrapper
+      if (config.enabled && !condition.apply(this, args)) {
+        config.violationHandler('Precondition', propertyKey, message);
       }
       return originalMethod.apply(this, args);
     };
@@ -33,11 +39,10 @@ export function ensure(condition: (returnValue: any, ...args:any[]) => boolean, 
 
     descriptor.value = function (...args: any[]) {
       const returnValue = originalMethod.apply(this, args);
-
-      if (!condition.apply(this, [returnValue, ...args])) {
-        throw new Error(`[Postcondition failed] on ${propertyKey}: ${message}`);
+      // Check is now inside the wrapper
+      if (config.enabled && !condition.apply(this, [returnValue, ...args])) {
+        config.violationHandler('Postcondition', propertyKey, message);
       }
-
       return returnValue;
     };
 
@@ -57,30 +62,25 @@ export function invariant(condition: (instance: any) => boolean, message: string
     const methodNames = Object.getOwnPropertyNames(target.prototype);
 
     for (const methodName of methodNames) {
-      if (methodName === 'constructor') {
-        continue;
-      }
+      if (methodName === 'constructor') continue;
 
       const descriptor = Object.getOwnPropertyDescriptor(target.prototype, methodName);
-      const isMethod = descriptor && typeof descriptor.value === 'function';
-
-      if (!isMethod) {
-        continue;
-      }
+      if (!descriptor || typeof descriptor.value !== 'function') continue;
 
       const originalMethod = descriptor.value;
 
       const wrappedMethod = function (...args: any[]) {
-        // Check invariant before method execution
-        if (!condition(this)) {
-          throw new Error(`[Invariant failed] before calling ${methodName}: ${message}`);
+        // Check is now inside the wrapper
+        if (config.enabled && !condition(this)) {
+          // Pass a clean, predictable message
+          config.violationHandler('Invariant', methodName, `(before) ${message}`);
         }
 
         const result = originalMethod.apply(this, args);
 
-        // Check invariant after method execution
-        if (!condition(this)) {
-          throw new Error(`[Invariant failed] after calling ${methodName}: ${message}`);
+        if (config.enabled && !condition(this)) {
+          // Pass a clean, predictable message
+          config.violationHandler('Invariant', methodName, `(after) ${message}`);
         }
 
         return result;
